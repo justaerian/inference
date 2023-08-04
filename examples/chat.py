@@ -1,8 +1,9 @@
+
 from typing import List
 
 from xinference.client import Client
 from xinference.types import ChatCompletionMessage
-
+#added error management
 if __name__ == "__main__":
     import argparse
 
@@ -43,23 +44,36 @@ if __name__ == "__main__":
     print(f"Quantization: {quantization}")
 
     client = Client(endpoint)
-    model_uid = client.launch_model(
-        model_name,
-        model_size_in_billions=model_size_in_billions,
-        model_format=model_format,
-        quantization=quantization,
-        n_ctx=2048,
-    )
-    model = client.get_model(model_uid)
+    try:
+        model_uid = client.launch_model(
+            model_name,
+            model_size_in_billions=model_size_in_billions,
+            model_format=model_format,
+            quantization=quantization,
+            n_ctx=2048,
+        )
+    except Exception as e:
+        print(f"Error launching model: {e}")
+        exit(1)
+        
+    try:
+        model = client.get_model(model_uid)
+    except Exception as e:
+        print(f"Error retrieving model: {e}")
+        exit(1)
 
     chat_history: List["ChatCompletionMessage"] = []
     while True:
         prompt = input("you: ")
-        completion = model.chat(
-            prompt=prompt,
-            chat_history=chat_history,
-            generate_config={"max_tokens": 1024},
-        )
+        try:
+            completion = model.chat(
+                prompt=prompt,
+                chat_history=chat_history,
+                generate_config={"max_tokens": 1024},
+            )
+        except Exception as e:
+            print(f"Error in chat function: {e}")
+            continue
         content = completion["choices"][0]["message"]["content"]
         print(f"{model_name}: {content}")
         chat_history.append(ChatCompletionMessage(role="user", content=prompt))
